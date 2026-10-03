@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Number Guessing Game</title>
+<style>
+  :root { --bg:#fff; --fg:#1a1a1a; --muted:#666; --accent:#2563eb; --border:#ccc;
+          box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#16181d; --fg:#eee; --muted:#999; --accent:#6ea0ff; --border:#444; } }
+  :root[data-theme="dark"] { --bg:#16181d; --fg:#eee; --muted:#999; --accent:#6ea0ff; --border:#444; }
+  body { background:var(--bg); color:var(--fg); font:16px system-ui,sans-serif; max-width:360px; margin:2rem auto; padding:0 1rem; }
+  input, select, button { font:inherit; padding:.5rem; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--fg); }
+  button { background:var(--accent); color:var(--bg); border:0; cursor:pointer; }
+  button:disabled { opacity:.4; cursor:default; }
+  form { display:flex; gap:.5rem; margin:1rem 0; }
+  input { flex:1; min-width:0; }
+  #msg { min-height:3em; font-weight:600; }
+  #info { color:var(--muted); }
+</style>
+</head>
+<body>
+  <h1>Guess the Number</h1>
+  <label>Difficulty <select id="level"></select></label>
+  <p id="info"></p>
+  <form id="form">
+    <input id="guess" type="number" inputmode="numeric" aria-label="Your guess" required>
+    <button id="go">Guess</button>
+  </form>
+  <p id="msg" aria-live="polite"></p>
+  <button id="restart">Restart</button>
+
+<script>
+// name: [min, max, max attempts]
+const LEVELS = { Easy: [1, 50, 10], Medium: [1, 100, 7], Hard: [1, 500, 9] };
+let min, max, limit, secret, tries;
+
+const $ = id => document.getElementById(id);
+const judge = (g, s) => g === s ? "correct" : g > s ? "high" : "low";
+console.assert(judge(5, 5) === "correct" && judge(9, 5) === "high" && judge(1, 5) === "low");
+
+for (const name in LEVELS) $("level").add(new Option(name));
+$("level").value = "Medium";
+
+function start() {
+  [min, max, limit] = LEVELS[$("level").value];
+  secret = Math.floor(Math.random() * (max - min + 1)) + min;
+  tries = 0;
+  $("info").textContent = `Pick a number from ${min} to ${max}. You have ${limit} attempts.`;
+  $("msg").textContent = "";
+  $("guess").value = "";
+  $("guess").disabled = $("go").disabled = false;
+  $("guess").focus();
+}
+
+function end(text) {
+  $("msg").textContent = text;
+  $("guess").disabled = $("go").disabled = true;
+}
+
+$("form").onsubmit = e => {
+  e.preventDefault();
+  const n = Number($("guess").value);
+  $("guess").value = "";
+  if (!Number.isInteger(n) || n < min || n > max) {
+    $("msg").textContent = `Enter a whole number from ${min} to ${max}.`;
+    return; // invalid input doesn't cost an attempt
+  }
+  tries++;
+  const result = judge(n, secret);
+  if (result === "correct") return end(`🎉 Correct! You got it in ${tries} ${tries === 1 ? "attempt" : "attempts"}.`);
+  if (tries >= limit) return end(`Out of attempts. The number was ${secret}.`);
+  $("msg").textContent = `Too ${result}! ${limit - tries} attempts left.`;
+};
+
+$("restart").onclick = $("level").onchange = start;
+start();
+</script>
+</body>
+</html>
